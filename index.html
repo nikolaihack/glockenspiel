@@ -354,11 +354,11 @@ const SEMI = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
 
 // Build glockenspiel note list C5-D7
 const BARS = [];
-for (let o = 5; o <= 7; o++) {
+for (let o = 6; o <= 7; o++) {
   for (const n of NOTES) {
     const midi = SEMI[n] + (o+1)*12;
     BARS.push({ n, o, midi, freq: 440*Math.pow(2,(midi-69)/12), id: n+o });
-    if (n==='D' && o===7) break;
+    if (n==='F' && o===7) break;
   }
 }
 
