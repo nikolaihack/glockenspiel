@@ -223,6 +223,25 @@ html, body {
 @keyframes sdPulse { 0%,100%{opacity:.35;transform:scale(.8)} 50%{opacity:1;transform:scale(1.2)} }
 .stxt { font-size:clamp(10px,1.7vw,13px); color:var(--warmL); font-weight:600; }
 
+/* Mic monitor */
+#micMonitor {
+  display:flex; align-items:center; justify-content:center;
+  gap:10px; padding:4px 8px; flex-shrink:0;
+  background:rgba(255,255,255,0.7); border-radius:16px;
+  margin:0 8px 4px;
+}
+#micMeter {
+  width:120px; height:14px; background:#eee; border-radius:7px; overflow:hidden;
+}
+#micMeterFill {
+  height:100%; width:0%; border-radius:7px;
+  background: linear-gradient(90deg,#27AE60,#F1C40F,#E74C3C);
+  transition: width 0.05s;
+}
+#micFreqLabel {
+  font-size:12px; font-weight:700; color:var(--warmL); min-width:100px; text-align:left;
+}
+
 /* ══════ SPARKLES ══════ */
 #sparks { position:fixed; inset:0; pointer-events:none; z-index:200; }
 .spk {
@@ -299,6 +318,11 @@ html, body {
   <div class="mstrip" id="mstrip"></div>
   <div class="hint" id="hintArea"></div>
   <div class="garea"><div class="glock" id="glock"></div></div>
+  <div id="micMonitor">
+    <span style="font-size:12px;font-weight:700;color:var(--warmL)">🎤</span>
+    <div id="micMeter"><div id="micMeterFill"></div></div>
+    <span id="micFreqLabel">warte…</span>
+  </div>
   <div class="sbar">
     <div class="sdot"></div>
     <span class="stxt">Ich höre zu…</span>
@@ -527,7 +551,7 @@ function acf(buf, sr) {
   let rms = 0;
   for (let i = 0; i < N; i++) rms += buf[i]*buf[i];
   rms = Math.sqrt(rms/N);
-  if (rms < 0.012) return -1;
+  if (rms < 0.006) return -1;
 
   // trim silence
   let r1=0, r2=N-1;
@@ -580,6 +604,21 @@ function loop() {
   const nid = f > 0 ? freqToId(f) : null;
 
   document.getElementById('dbg').textContent = nid ? nid+' ('+Math.round(f)+'Hz)' : '';
+
+  // update mic monitor
+  let rmsVal = 0;
+  for (let i=0;i<buf.length;i++) rmsVal += buf[i]*buf[i];
+  rmsVal = Math.sqrt(rmsVal/buf.length);
+  const meterPct = Math.min(100, rmsVal * 600);
+  const mFill = document.getElementById('micMeterFill');
+  if (mFill) mFill.style.width = meterPct + '%';
+  const mLabel = document.getElementById('micFreqLabel');
+  if (mLabel) {
+    if (f > 0 && nid) mLabel.textContent = nid + ' · ' + Math.round(f) + 'Hz ✓';
+    else if (f > 0) mLabel.textContent = Math.round(f) + 'Hz (?)';
+    else if (rmsVal > 0.006) mLabel.textContent = 'Ton erkannt…';
+    else mLabel.textContent = 'warte…';
+  }
 
   if (nid && song && idx < song.notes.length) {
     const target = song.notes[idx];
