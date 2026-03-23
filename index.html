@@ -256,6 +256,32 @@ html, body {
   <div class="sgrid" id="sgrid"></div>
 </div>
 
+<!-- ═══ SPEED SELECT ═══ -->
+<div class="scr" id="speedScreen">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:20px;padding:20px;background:linear-gradient(155deg,#FFF5EE 0%,#FDEBD3 35%,#E6F0FA 100%);">
+    <div style="font-size:clamp(20px,4vw,32px);font-weight:800;color:var(--warm);text-align:center;" id="speedSongTitle"></div>
+    <div style="font-size:clamp(13px,2.2vw,16px);color:var(--warmL);font-weight:600;">Wie schnell?</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;max-width:320px;width:100%;">
+      <button onclick="setSpeed(0.25)" class="sbtn" style="aspect-ratio:auto;padding:16px;border-radius:18px;">
+        <span class="em" style="font-size:28px">🐢</span>
+        <span class="lb" style="font-size:14px;color:var(--warm)">Langsam</span>
+      </button>
+      <button onclick="setSpeed(0.5)" class="sbtn" style="aspect-ratio:auto;padding:16px;border-radius:18px;">
+        <span class="em" style="font-size:28px">🚶</span>
+        <span class="lb" style="font-size:14px;color:var(--warm)">Mittel</span>
+      </button>
+      <button onclick="setSpeed(0.75)" class="sbtn" style="aspect-ratio:auto;padding:16px;border-radius:18px;">
+        <span class="em" style="font-size:28px">🏃</span>
+        <span class="lb" style="font-size:14px;color:var(--warm)">Schnell</span>
+      </button>
+      <button onclick="setSpeed(1.0)" class="sbtn" style="aspect-ratio:auto;padding:16px;border-radius:18px;">
+        <span class="em" style="font-size:28px">🚀</span>
+        <span class="lb" style="font-size:14px;color:var(--warm)">Original</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ MIC PROMPT ═══ -->
 <div class="scr" id="micScreen">
   <div class="mic-icon">🎤</div>
@@ -342,7 +368,7 @@ const SONGS = [
 // ════════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════════
-let song = null, idx = 0, starCnt = 0;
+let song = null, idx = 0, starCnt = 0, speedMult = 0.25;
 let audioCtx = null, analyser = null, micOk = false;
 let detecting = false, rafId = null;
 let lastNote = '', confirmN = 0;
@@ -380,6 +406,12 @@ function buildGrid() {
 
 function pickSong(i) {
   song = SONGS[i]; idx = 0; starCnt = 0;
+  document.getElementById('speedSongTitle').textContent = song.emoji + ' ' + song.title;
+  show('speedScreen');
+}
+
+function setSpeed(s) {
+  speedMult = s;
   if (micOk) { startPlay(); return; }
   show('micScreen');
   document.getElementById('micErr').style.display = 'none';
@@ -468,19 +500,20 @@ function computeLanePositions() {
 // ════════════════════════════════════════════════════
 //  FALLING NOTES (Guitar Hero style)
 // ════════════════════════════════════════════════════
-const FALL_DURATION = 2000; // ms for note to fall from top to hit zone
-const LOOK_AHEAD = 4; // show this many upcoming notes
+let FALL_DURATION = 2500; // ms for note to fall from top to hit zone
+const LOOK_AHEAD = 100; // show all upcoming notes
 
 function spawnFallingNotes() {
   // clear existing
   const la = document.getElementById('laneArea');
   la.querySelectorAll('.fnote').forEach(e => e.remove());
   fallingNotes = [];
-  songStartTime = performance.now() + 1000; // 1s grace period
+  FALL_DURATION = speedMult < 0.5 ? 3500 : 2500;
+  songStartTime = performance.now() + FALL_DURATION;
 
   // Calculate cumulative times
   let cumTime = 0;
-  const beatMs = 60000 / song.bpm;
+  const beatMs = 60000 / (song.bpm * speedMult);
   song._times = song.notes.map(([nid, beats]) => {
     const t = cumTime;
     cumTime += beats * beatMs;
