@@ -389,7 +389,7 @@ let song = null, idx = 0, starCnt = 0;
 let audioCtx = null, analyser = null, micOk = false;
 let detecting = false, rafId = null;
 let lastNote = '', confirmN = 0;
-const CONFIRM = 3;
+const CONFIRM = 2;
 
 // ════════════════════════════════════════════════════
 //  SCREENS
@@ -580,13 +580,13 @@ function acf(buf, sr) {
 }
 
 function freqToId(f) {
-  if (f<480||f>2500) return null;
+  if (f<800||f>3000) return null;
   let best=null, bestD=Infinity;
   for (const b of BARS) {
     const cents = Math.abs(1200*Math.log2(f/b.freq));
     if (cents < bestD) { bestD=cents; best=b; }
   }
-  return (best && bestD < 80) ? best.id : null;
+  return (best && bestD < 120) ? best.id : null;
 }
 
 function startDetect() {
