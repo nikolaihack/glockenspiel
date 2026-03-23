@@ -551,7 +551,7 @@ function acf(buf, sr) {
   let rms = 0;
   for (let i = 0; i < N; i++) rms += buf[i]*buf[i];
   rms = Math.sqrt(rms/N);
-  if (rms < 0.006) return -1;
+  if (rms < 0.002) return -1;
 
   // trim silence
   let r1=0, r2=N-1;
@@ -605,20 +605,31 @@ function loop() {
 
   document.getElementById('dbg').textContent = nid ? nid+' ('+Math.round(f)+'Hz)' : '';
 
-  // update mic monitor
+  // update mic monitor with peak-hold
   let rmsVal = 0;
   for (let i=0;i<buf.length;i++) rmsVal += buf[i]*buf[i];
   rmsVal = Math.sqrt(rmsVal/buf.length);
-  const meterPct = Math.min(100, rmsVal * 600);
-  const mFill = document.getElementById('micMeterFill');
-  if (mFill) mFill.style.width = meterPct + '%';
-  const mLabel = document.getElementById('micFreqLabel');
-  if (mLabel) {
-    if (f > 0 && nid) mLabel.textContent = nid + ' · ' + Math.round(f) + 'Hz ✓';
-    else if (f > 0) mLabel.textContent = Math.round(f) + 'Hz (?)';
-    else if (rmsVal > 0.006) mLabel.textContent = 'Ton erkannt…';
-    else mLabel.textContent = 'warte…';
+  const meterPct = Math.min(100, rmsVal * 1200);
+
+  // peak hold: keep bar and label for 2s after last sound
+  if (!window._micPeak) window._micPeak = { pct:0, label:'warte…', ts:0 };
+  const pk = window._micPeak;
+  const now = Date.now();
+  if (meterPct > 2) {
+    pk.pct = meterPct;
+    pk.ts = now;
+    if (f > 0 && nid) pk.label = nid + ' · ' + Math.round(f) + 'Hz ✓';
+    else if (f > 0) pk.label = Math.round(f) + 'Hz (nicht erkannt)';
+    else pk.label = 'Ton erkannt…';
+  } else if (now - pk.ts > 2000) {
+    pk.pct = 0;
+    pk.label = 'warte…';
   }
+
+  const mFill = document.getElementById('micMeterFill');
+  if (mFill) mFill.style.width = pk.pct + '%';
+  const mLabel = document.getElementById('micFreqLabel');
+  if (mLabel) mLabel.textContent = pk.label;
 
   if (nid && song && idx < song.notes.length) {
     const target = song.notes[idx];
